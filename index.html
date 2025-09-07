@@ -6,7 +6,6 @@
   <title>PWA NFC Reader</title>
   <link rel="manifest" href="manifest.json" />
   <style>
-    /* Stili precedenti */
     * {
       box-sizing: border-box;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -19,9 +18,9 @@
       padding: 1rem;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
     }
     h1 {
-      text-align: center;
       margin-bottom: 1.5rem;
       color: #2c3e50;
       font-weight: 700;
@@ -60,6 +59,26 @@
       background-color: #e74c3c;
       box-shadow: 0 5px 12px rgba(231, 76, 60, 0.7);
     }
+    #valueInput {
+      width: 150px;
+      margin: 1rem auto 1.5rem auto;
+      padding: 8px 12px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: 1px solid #95a5a6;
+      text-align: center;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+      outline: none;
+      transition: border-color 0.3s ease;
+      display: none; /* nascosta all’inizio */
+    }
+    #valueInput:focus {
+      border-color: #2980b9;
+    }
+    #controls {
+      margin-top: 10px;
+      display: none; /* nascosto all’inizio */
+    }
     #output {
       margin-top: 1.5rem;
       font-size: 1.1rem;
@@ -70,31 +89,11 @@
       white-space: pre-wrap;
       border: 1px solid #bdc3c7;
     }
-    #valueInput {
-      display: block;
-      width: 100%;
-      max-width: 150px;
-      margin: 1rem auto 1.5rem auto;
-      padding: 8px 12px;
-      font-size: 1rem;
-      border-radius: 5px;
-      border: 1px solid #95a5a6;
-      text-align: center;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-      outline: none;
-      transition: border-color 0.3s ease;
-    }
-    #valueInput:focus {
-      border-color: #2980b9;
-    }
   </style>
 </head>
 <body>
   <h1>PWA NFC Reader</h1>
-  <div style="text-align: center;">
-    <button id="scanNFC">Scansiona Tag NFC</button>
-    <button id="writeNFC">Scrivi Tag NFC</button>
-  </div>
+  <p id="output">Caricamento in corso, avvicina un tag NFC...</p>
 
   <input
     id="valueInput"
@@ -107,12 +106,102 @@
     title="Inserisci un valore con 2 decimali"
   />
 
-  <div style="text-align: center; margin-top: 10px;">
+  <div id="controls">
     <button id="btnAddValue">Aggiungi Valore</button>
     <button id="btnRemoveValue">Rimuovi Valore</button>
   </div>
-  <p id="output">Nessun tag letto</p>
 
-  <script src="nfc.js"></script>
+  <script>
+    const output = document.getElementById('output');
+    const valueInput = document.getElementById('valueInput');
+    const controls = document.getElementById('controls');
+    const btnAddValue = document.getElementById('btnAddValue');
+    const btnRemoveValue = document.getElementById('btnRemoveValue');
+
+    let currentValue = 0;
+
+    // Funzione per mostrare controlli
+    function showControls() {
+      valueInput.style.display = 'block';
+      controls.style.display = 'block';
+    }
+
+    // Funzione lettura NFC
+    async function readNfc() {
+      if (!('NDEFReader' in window)) {
+        output.textContent = "Web NFC non supportato su questo dispositivo.";
+        return;
+      }
+      try {
+        const ndef = new NDEFReader();
+        await ndef.scan();
+        output.textContent = "In attesa di un tag NFC...";
+        return new Promise((resolve, reject) => {
+          ndef.onreadingerror = () => {
+            output.textContent = "Errore nella lettura del tag NFC.";
+            reject(new Error("Errore lettura"));
+          };
+          ndef.onreading = event => {
+            const decoder = new TextDecoder();
+            let message = '';
+            for (const record of event.message.records) {
+              if (record.recordType === "text") {
+                message += decoder.decode(record.data);
+              }
+            }
+            output.textContent = "Tag letto:\n" + message;
+            currentValue = parseFloat(message) || 0;
+            showControls();
+            resolve(currentValue);
+          };
+        });
+      } catch (error) {
+        output.textContent = "Errore: " + error;
+      }
+    }
+
+    // Funzione scrittura NFC
+    async function writeNfc(data) {
+      if (!('NDEFReader' in window)) {
+        throw new Error("Web NFC non supportato su questo dispositivo.");
+      }
+      try {
+        const ndef = new NDEFReader();
+        await ndef.write(data);
+        return "Tag scritto:\n" + data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    }
+
+    // Gestione eventi
+    btnAddValue.addEventListener('click', async () => {
+      try {
+        let increment = parseFloat(valueInput.value) || 0;
+        currentValue = parseFloat((currentValue + increment).toFixed(2));
+        const result = await writeNfc(currentValue.toString());
+        output.textContent = result;
+      } catch (e) {
+        output.textContent = "Errore scrittura: " + e.message;
+      }
+    });
+
+    btnRemoveValue.addEventListener('click', async () => {
+      try {
+        let decrement = parseFloat(valueInput.value) || 0;
+        currentValue = parseFloat((currentValue - decrement).toFixed(2));
+        const result = await writeNfc(currentValue.toString());
+        output.textContent = result;
+      } catch (e) {
+        output.textContent = "Errore scrittura: " + e.message;
+      }
+    });
+
+    // Esegui lettura NFC all’avvio della pagina
+    window.addEventListener('load', () => {
+      readNfc();
+    });
+  </script>
+
 </body>
 </html>
