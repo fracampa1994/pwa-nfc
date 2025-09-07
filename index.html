@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PWA NFC Reader – Gestione transazioni</title>
-  <link rel="manifest" href="manifest.json" />
+  <title>PWA NFC JSON Reader</title>
   <style>
     * {
       box-sizing: border-box;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     body {
-      max-width: 480px;
+      max-width: 600px;
       margin: 2rem auto;
       background: #f0f4f8;
       color: #333;
@@ -26,18 +25,8 @@
       font-weight: 700;
       font-size: 1.8rem;
     }
-    #output {
-      margin-top: 1.5rem;
-      font-size: 1.1rem;
-      background: #ecf0f1;
-      padding: 1rem;
-      border-radius: 6px;
-      min-height: 4rem;
-      white-space: pre-wrap;
-      border: 1px solid #bdc3c7;
-    }
     #valueInput {
-      width: 150px;
+      width: 120px;
       margin: 1rem auto 1.5rem auto;
       padding: 8px 12px;
       font-size: 1rem;
@@ -51,47 +40,67 @@
     #valueInput:focus {
       border-color: #2980b9;
     }
-    .user-section {
-      margin: 12px auto;
-      background: #fff;
-      padding: 1rem;
-      border-radius: 6px;
-      box-shadow: 0 0 8px rgba(41,128,185,0.15);
-      width: 90%;
-      max-width: 360px;
+    #usersContainer {
+      margin-top: 1rem;
+      display: none; /* nascosto finché non arriva JSON valido */
       text-align: left;
     }
-    .user-name {
-      font-weight: 600;
-      font-size: 1.2rem;
-      color: #2980b9;
-      margin-bottom: 8px;
+    .user-row {
+      background: #ecf0f1;
+      margin-bottom: 10px;
+      padding: 12px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     }
-    .user-total {
-      margin-bottom: 12px;
+    .username {
+      font-weight: 700;
+      font-size: 1.1rem;
+      min-width: 120px;
+    }
+    .user-value {
+      min-width: 70px;
+      text-align: right;
+      font-family: monospace;
       font-size: 1rem;
       color: #333;
+      margin-right: 20px;
     }
-    .btn-user {
-      background-color: #27ae60;
-      color: white;
+    .btnGroup button {
+      background-color: #2980b9;
       border: none;
+      color: white;
+      padding: 8px 12px;
+      margin-left: 6px;
       border-radius: 5px;
-      padding: 8px 14px;
+      font-size: 0.9rem;
       cursor: pointer;
-      font-size: 1rem;
-      box-shadow: 0 3px 6px rgba(39, 174, 96, 0.5);
-      transition: background-color 0.3s ease;
+      box-shadow: 0 3px 6px rgba(41, 128, 185, 0.5);
+      transition: background-color 0.25s ease, box-shadow 0.25s ease;
+      min-width: 75px;
     }
-    .btn-user:hover {
-      background-color: #2ecc71;
-      box-shadow: 0 5px 12px rgba(46, 204, 113, 0.7);
+    .btnGroup button:hover {
+      background-color: #3498db;
+      box-shadow: 0 5px 12px rgba(52, 152, 219, 0.7);
+    }
+    #output {
+      margin-top: 1rem;
+      font-size: 1.1rem;
+      background: #fefefe;
+      padding: 1rem;
+      border-radius: 6px;
+      min-height: 3rem;
+      white-space: pre-wrap;
+      border: 1px solid #bdc3c7;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <h1>PWA NFC Reader – Gestione transazioni</h1>
-  <p id="output">Avvicina un tag NFC contenente i dati...</p>
+  <h1>PWA NFC JSON Reader</h1>
+  <p id="output">Avvicina un tag NFC contenente JSON...</p>
 
   <input
     id="valueInput"
@@ -99,8 +108,8 @@
     step="0.01"
     min="0"
     max="9999.99"
-    value="0.00"
-    aria-label="Costo da aggiungere"
+    value="1.00"
+    aria-label="Valore da aggiungere o togliere"
     title="Inserisci un valore con 2 decimali"
     disabled
   />
@@ -112,7 +121,7 @@
     const valueInput = document.getElementById('valueInput');
     const usersContainer = document.getElementById('usersContainer');
 
-    let jsonData = null; // L’oggetto JSON letto dal tag NFC
+    let userData = {}; // oggetto con i dati del tag
 
     async function readNfc() {
       if (!('NDEFReader' in window)) {
@@ -122,7 +131,8 @@
       try {
         const ndef = new NDEFReader();
         await ndef.scan();
-        output.textContent = "In attesa di un tag NFC...";
+        output.textContent = "In attesa di un tag NFC con JSON...";
+
         return new Promise((resolve, reject) => {
           ndef.onreadingerror = () => {
             output.textContent = "Errore nella lettura del tag NFC.";
@@ -137,14 +147,17 @@
               }
             }
             try {
-              jsonData = JSON.parse(message);
-              output.textContent = "Tag letto con dati JSON validi.";
-              valueInput.disabled = false;
+              userData = JSON.parse(message);
+              if (typeof userData !== 'object' || userData === null) {
+                throw new Error("JSON non valido");
+              }
+              output.textContent = "Tag letto con dati JSON.";
               renderUsers();
-              resolve(jsonData);
-            } catch (err) {
-              output.textContent = "Tag letto ma JSON non valido: " + err.message;
-              reject(err);
+              valueInput.disabled = false;
+              resolve(userData);
+            } catch (e) {
+              output.textContent = "JSON non valido sul tag NFC.";
+              reject(e);
             }
           };
         });
@@ -153,45 +166,64 @@
       }
     }
 
-    function calcolaTotalePerUtente(user) {
-      if (!jsonData || !jsonData.transaction) return 0;
-      return jsonData.transaction
-        .filter(t => t.user === user)
-        .reduce((acc, t) => acc + t.cost, 0);
-    }
-
     function renderUsers() {
-      usersContainer.innerHTML = ''; // pulisco
+      usersContainer.innerHTML = '';
+      for (const [user, value] of Object.entries(userData)) {
+        const row = document.createElement('div');
+        row.className = 'user-row';
 
-      if (!jsonData?.users || !Array.isArray(jsonData.users)) {
-        output.textContent = 'Nessun utente trovato nel JSON.';
-        return;
-      }
+        const name = document.createElement('div');
+        name.className = 'username';
+        name.textContent = user;
 
-      jsonData.users.forEach(user => {
-        const userSection = document.createElement('div');
-        userSection.className = 'user-section';
+        const val = document.createElement('div');
+        val.className = 'user-value';
+        val.textContent = parseFloat(value).toFixed(2);
 
-        const userName = document.createElement('div');
-        userName.className = 'user-name';
-        userName.textContent = user;
-
-        const userTotal = document.createElement('div');
-        userTotal.className = 'user-total';
-        const totale = calcolaTotalePerUtente(user).toFixed(2);
-        userTotal.textContent = `Totale speso: € ${totale}`;
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'btnGroup';
 
         const btnAdd = document.createElement('button');
-        btnAdd.className = 'btn-user';
-        btnAdd.textContent = `Aggiungi costo a ${user}`;
-        btnAdd.addEventListener('click', () => addTransaction(user));
+        btnAdd.textContent = 'Aggiungi';
+        btnAdd.addEventListener('click', async () => {
+          await updateUserValue(user, parseFloat(valueInput.value) || 0);
+        });
 
-        userSection.appendChild(userName);
-        userSection.appendChild(userTotal);
-        userSection.appendChild(btnAdd);
+        const btnRemove = document.createElement('button');
+        btnRemove.textContent = 'Rimuovi';
+        btnRemove.addEventListener('click', async () => {
+          await updateUserValue(user, -(parseFloat(valueInput.value) || 0));
+        });
 
-        usersContainer.appendChild(userSection);
-      });
+        btnGroup.appendChild(btnAdd);
+        btnGroup.appendChild(btnRemove);
+
+        row.appendChild(name);
+        row.appendChild(val);
+        row.appendChild(btnGroup);
+
+        usersContainer.appendChild(row);
+      }
+      usersContainer.style.display = 'block';
+    }
+
+    async function updateUserValue(user, delta) {
+      try {
+        // aggiorna valore in memoria
+        let current = parseFloat(userData[user]) || 0;
+        let updated = parseFloat((current + delta).toFixed(2));
+        updated = updated < 0 ? 0 : updated; // evita valori negativi
+        userData[user] = updated;
+
+        // aggiorna UI subito
+        renderUsers();
+
+        // scrive JSON aggiornato nel tag NFC
+        const writeResult = await writeNfc(JSON.stringify(userData));
+        output.textContent = writeResult;
+      } catch (e) {
+        output.textContent = "Errore nella scrittura: " + e.message;
+      }
     }
 
     async function writeNfc(data) {
@@ -203,27 +235,7 @@
         await ndef.write(data);
         return "Tag scritto con successo.";
       } catch (error) {
-        throw new Error(error);
-      }
-    }
-
-    async function addTransaction(user) {
-      const costStr = valueInput.value.trim();
-      const cost = parseFloat(costStr);
-      if (isNaN(cost) || cost < 0) {
-        alert('Inserisci un valore numerico valido >= 0 nella casella di testo.');
-        return;
-      }
-      // Aggiungo la transazione all’array
-      if (!jsonData.transaction) jsonData.transaction = [];
-      jsonData.transaction.push({ user, cost });
-
-      try {
-        const result = await writeNfc(JSON.stringify(jsonData));
-        output.textContent = result;
-        renderUsers();
-      } catch (e) {
-        output.textContent = "Errore scrittura: " + e.message;
+        throw error;
       }
     }
 
