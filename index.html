@@ -1,18 +1,87 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PWA NFC Reader</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    /* Reset base */
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      max-width: 480px;
+      margin: 2rem auto;
+      background: #f0f4f8;
+      color: #333;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #2c3e50;
+      font-weight: 700;
+      font-size: 1.8rem;
+    }
+    button {
+      background-color: #2980b9;
+      border: none;
+      color: white;
+      padding: 12px 18px;
+      margin: 0.4rem 0.3rem;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(41, 128, 185, 0.5);
+      transition: background-color 0.25s ease, box-shadow 0.25s ease;
+      min-width: 120px;
+    }
+    button:hover {
+      background-color: #3498db;
+      box-shadow: 0 5px 12px rgba(52, 152, 219, 0.7);
+    }
+    #btnAddValue {
+      background-color: #27ae60;
+      box-shadow: 0 3px 6px rgba(39, 174, 96, 0.5);
+    }
+    #btnAddValue:hover {
+      background-color: #2ecc71;
+      box-shadow: 0 5px 12px rgba(46, 204, 113, 0.7);
+    }
+    #btnRemoveValue {
+      background-color: #c0392b;
+      box-shadow: 0 3px 6px rgba(192, 57, 43, 0.5);
+    }
+    #btnRemoveValue:hover {
+      background-color: #e74c3c;
+      box-shadow: 0 5px 12px rgba(231, 76, 60, 0.7);
+    }
+    #output {
+      margin-top: 1.5rem;
+      font-size: 1.1rem;
+      background: #ecf0f1;
+      padding: 1rem;
+      border-radius: 6px;
+      min-height: 4rem;
+      white-space: pre-wrap;
+      border: 1px solid #bdc3c7;
+    }
+  </style>
 </head>
 <body>
   <h1>PWA NFC Reader</h1>
-  <button id="scanNFC">Scansiona Tag NFC</button>
-  <button id="writeNFC">Scrive Tag NFC</button>
-  <button id="btnAddValue">btnAddValue</button>
-  <button id="btnRemoveValue">btnRemoveValue</button>
-  
+  <div style="text-align: center;">
+    <button id="scanNFC">Scansiona Tag NFC</button>
+    <button id="writeNFC">Scrivi Tag NFC</button>
+  </div>
+  <div style="text-align: center; margin-top: 10px;">
+    <button id="btnAddValue">Aggiungi Valore</button>
+    <button id="btnRemoveValue">Rimuovi Valore</button>
+  </div>
   <p id="output">Nessun tag letto</p>
 
   <script src="nfc.js"></script>
