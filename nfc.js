@@ -1,4 +1,5 @@
 const output = document.getElementById('output');
+const valueInput = document.getElementById('valueInput'); // nuova textbox
 
 const btnLeggi = document.getElementById('scanNFC');
 const btnAddValue = document.getElementById('btnAddValue');
@@ -12,7 +13,8 @@ btnLeggi.addEventListener('click', async () => {
 
 btnAddValue.addEventListener('click', async () => {
   try {
-    currentValue += 1;
+    let increment = parseFloat(valueInput.value) || 0;
+    currentValue = parseFloat((currentValue + increment).toFixed(2)); // somma con 2 decimali
     const result = await writeNfc(currentValue.toString());
     output.textContent = result;
   } catch (e) {
@@ -22,7 +24,8 @@ btnAddValue.addEventListener('click', async () => {
 
 btnRemoveValue.addEventListener('click', async () => {
   try {
-    currentValue -= 1;
+    let decrement = parseFloat(valueInput.value) || 0;
+    currentValue = parseFloat((currentValue - decrement).toFixed(2)); // sottrai con 2 decimali
     const result = await writeNfc(currentValue.toString());
     output.textContent = result;
   } catch (e) {
@@ -55,7 +58,7 @@ async function readNfc() {
           }
         }
         output.textContent = "Tag letto:\n" + message;
-        currentValue = parseInt(message) || 0; // salva valore letto come numero
+        currentValue = parseFloat(message) || 0; // salva valore letto come numero con virgola
         resolve(currentValue);
       };
     });
